@@ -1,7 +1,8 @@
 # Rust Mechanical Gears App
 
 A mechanical gear app written in Rust. It supports both command-line and
-WebAssembly (WASM) outputs.
+WebAssembly (WASM) outputs. It features calculations with gear ratio, pitch
+diameter, output RPM and center distance.
 
 ### Getting Started
 
