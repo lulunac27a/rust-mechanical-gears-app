@@ -16,7 +16,7 @@ pub struct GearTrain {
 }
 
 #[wasm_bindgen]
-im {
+impl GearTrain {
     #[wasm_bindgen(constructor)]
     pub fn new(driver_teeth: u32, driven_teeth: u32, module: f64) -> GearTrain {
         GearTrain {
