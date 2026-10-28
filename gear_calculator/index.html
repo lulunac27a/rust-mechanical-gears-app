@@ -2,42 +2,263 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Rust Mechanical Gear Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Mechanical Gear Simulation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #1e1e24;
+            color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { margin-bottom: 5px; color: #4facfe; }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .controls {
+            background: #2a2a35;
+            padding: 20px;
+            border-radius: 12px;
+            flex: 1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #bbb;
+        }
+        input[type="range"], input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            background: #3a3a4a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .canvas-area {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            background: #15151a;
+            border: 2px solid #333;
+            border-radius: 12px;
+            cursor: grab;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        canvas:active { cursor: grabbing; }
+        pre {
+            background: #111;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            border-left: 4px solid #00f2fe;
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>Rust Wasm Gear Calculator</h1>
-    <div>
-        <label>Driver Teeth: <input type="number" id="driver" value="20"></label><br><br>
-        <label>Driven Teeth: <input type="number" id="driven" value="40"></label><br><br>
-        <label>Module (mm): <input type="number" id="module" value="2.0"></label><br><br>
-        <label>Driver RPM: <input type="number" id="rpm" value="1000"></label><br><br>
-        <button onclick="calculateGears()">Calculate</button>
-    </div>
 
-    <h3>Results:</h3>
-    <pre id="output"></pre>
+    <h1>Mechanical Gear Simulation</h1>
+    <p style="color: #888; margin: 0;">Calculated by Rust Wasm • Rendered in Canvas</p>
+
+    <div class="container">
+        <!-- Input parameters controls panel -->
+        <div class="controls">
+            <div class="control-group">
+                <label id="lbl-driver">Driver Teeth: 24</label>
+                <input type="range" id="driver" min="8" max="60" step="1" value="24">
+            </div>
+            <div class="control-group">
+                <label id="lbl-driven">Driven Teeth: 12</label>
+                <input type="range" id="driven" min="8" max="60" step="1" value="12">
+            </div>
+            <div class="control-group">
+                <label>Module (Tooth Size Scale):</label>
+                <input type="number" id="module" value="4.0" step="0.5" min="1">
+            </div>
+            <div class="control-group">
+                <label id="lbl-rpm">Input Driver RPM: 60</label>
+                <input type="range" id="rpm" min="-180" max="180" step="5" value="60">
+            </div>
+            
+            <h3>Telemetry Matrix</h3>
+            <pre id="output">Loading physics data...</pre>
+        </div>
+
+        <!-- Render Pipeline area -->
+        <div class="canvas-area">
+            <canvas id="gearCanvas" width="550" height="400"></canvas>
+            <p style="font-size: 12px; color: #666; margin-top: 8px;">Tip: Drag left or right inside the canvas to manually rotate the assembly.</p>
+        </div>
+    </div>
 
     <script type="module">
         import init, { GearTrain } from './pkg/gear_calculator.js';
 
-        async function run() {
+        const canvas = document.getElementById('gearCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Animation orientation offsets
+        let driverAngle = 0;
+        let isDragging = false;
+        let previousMouseX = 0;
+
+        async function startApp() {
+            // Unpack underlying Rust bundle
             await init();
-            window.GearTrain = GearTrain;
+            
+            // Core simulation tickers
+            let lastTime = performance.now();
+
+            function updateAndRender(currentTime) {
+                const dt = (currentTime - lastTime) / 1000; // in seconds
+                lastTime = currentTime;
+
+                // Extract slider DOM targets
+                const driverTeeth = parseInt(document.getElementById('driver').value);
+                const drivenTeeth = parseInt(document.getElementById('driven').value);
+                const moduleSize = parseFloat(document.getElementById('module').value);
+                const driverRPM = parseFloat(document.getElementById('rpm').value);
+
+                // Update configuration indicator texts
+                document.getElementById('lbl-driver').textContent = `Driver Teeth: ${driverTeeth}`;
+                document.getElementById('lbl-driven').textContent = `Driven Teeth: ${drivenTeeth}`;
+                document.getElementById('lbl-rpm').textContent = `Input Driver RPM: ${driverRPM}`;
+
+                // Pipe specifications through the compiled Rust class
+                const system = new GearTrain(driverTeeth, drivenTeeth, moduleSize);
+                const telemetryString = system.calculate(driverRPM);
+                const telemetry = JSON.parse(telemetryString);
+
+                // Populate side telemetries text payload
+                document.getElementById('output').textContent = JSON.stringify(telemetry, null, 2);
+
+                // Update rotational angles if the user isn't manual scrubbing
+                if (!isDragging) {
+                    const revolutionsPerSec = driverRPM / 60;
+                    const radiansPerSec = revolutionsPerSec * 2 * Math.PI;
+                    driverAngle += radiansPerSec * dt;
+                }
+
+                // Use the precise calculated gear ratio from Rust for mapping output pitch orientation
+                const drivenAngle = -driverAngle / telemetry.gear_ratio;
+
+                // Clear canvas before drawing frame steps
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Define placement centers
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // Pitch Radius = (Teeth * Module) / 2
+                const rDriver = (driverTeeth * moduleSize);
+                const rDriven = (drivenTeeth * moduleSize);
+
+                // Shift origin positions relative to spacing center metrics
+                const offset = (rDriver + rDriven) / 2;
+                const driverX = centerX - offset + (rDriver / 2);
+                const drivenX = centerX + offset - (rDriven / 2);
+
+                // Render component sub-assets
+                drawGear(ctx, driverX, centerY, rDriver, driverTeeth, driverAngle, '#4facfe');
+                drawGear(ctx, drivenX, centerY, rDriven, drivenTeeth, drivenAngle, '#00f2fe');
+
+                requestAnimationFrame(updateAndRender);
+            }
+
+            // Bind manual manipulation interactions
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouseX = e.clientX;
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMouseX;
+                previousMouseX = e.clientX;
+
+                // Translate horizontal scrubbing to driver rot angle velocity
+                driverAngle += deltaX * 0.01;
+            });
+
+            requestAnimationFrame(updateAndRender);
         }
-        run();
 
-        window.calculateGears = function() {
-            const driver = parseInt(document.getElementById('driver').value);
-            const driven = parseInt(document.getElementById('driven').value);
-            const mod = parseFloat(document.getElementById('module').value);
-            const rpm = parseFloat(document.getElementById('rpm').value);
+        // Draw mechanical geometric approximations
+        function drawGear(ctx, cx, cy, radius, teeth, rotationAngle, strokeColor) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rotationAngle);
 
-            const train = new GearTrain(driver, driven, mod);
-            const jsonStr = train.calculate(rpm);
-            const data = JSON.parse(jsonStr);
+            const pitchRadius = radius;
+            const toothDepth = radius * 0.15; 
+            const outerRadius = pitchRadius + toothDepth;
+            const innerRadius = pitchRadius - toothDepth;
 
-            document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+            ctx.beginPath();
+            for (let i = 0; i < teeth; i++) {
+                const angleStep = (Math.PI * 2) / teeth;
+                const baseAngle = i * angleStep;
+
+                // Mathematical approximations mapping standard involute style geometry blocks
+                ctx.lineTo(Math.cos(baseAngle) * innerRadius, Math.sin(baseAngle) * innerRadius);
+                ctx.lineTo(Math.cos(baseAngle + angleStep * 0.25) * outerRadius, Math.sin(baseAngle + angleStep * 0.25) * outerRadius);
+                ctx.lineTo(Math.cos(baseAngle + angleStep * 0.5) * outerRadius, Math.sin(baseAngle + angleStep * 0.5) * outerRadius);
+                ctx.lineTo(Math.cos(baseAngle + angleStep * 0.75) * innerRadius, Math.sin(baseAngle + angleStep * 0.75) * innerRadius);
+            }
+            ctx.closePath();
+
+            // Style physical main lines
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = strokeColor;
+            ctx.fillStyle = strokeColor + '22'; // 15% opacity transparency mask fill
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw pitch reference circle profile line
+            ctx.beginPath();
+            ctx.arc(0, 0, pitchRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Center bearing pin structural visual accents
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            // Reference tooth timing mark line marker
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(pitchRadius, 0);
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
         }
+        startApp();
     </script>
 </body>
 </html>
