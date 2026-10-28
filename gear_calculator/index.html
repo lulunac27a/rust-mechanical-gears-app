@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rust Mechanical Gear Calculator</title>
+</head>
+<body>
+    <h1>Rust Wasm Gear Calculator</h1>
+    <div>
+        <label>Driver Teeth: <input type="number" id="driver" value="20"></label><br><br>
+        <label>Driven Teeth: <input type="number" id="driven" value="40"></label><br><br>
+        <label>Module (mm): <input type="number" id="module" value="2.0"></label><br><br>
+        <label>Driver RPM: <input type="number" id="rpm" value="1000"></label><br><br>
+        <button onclick="calculateGears()">Calculate</button>
+    </div>
+
+    <h3>Results:</h3>
+    <pre id="output"></pre>
+
+    <script type="module">
+        import init, { GearTrain } from './pkg/gear_calculator.js';
+
+        async function run() {
+            await init();
+            window.GearTrain = GearTrain;
+        }
+        run();
+
+        window.calculateGears = function() {
+            const driver = parseInt(document.getElementById('driver').value);
+            const driven = parseInt(document.getElementById('driven').value);
+            const mod = parseFloat(document.getElementById('module').value);
+            const rpm = parseFloat(document.getElementById('rpm').value);
+
+            const train = new GearTrain(driver, driven, mod);
+            const jsonStr = train.calculate(rpm);
+            const data = JSON.parse(jsonStr);
+
+            document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>
