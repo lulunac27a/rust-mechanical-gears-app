@@ -1,381 +1,400 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Involute Mechanical Gear Simulation</title>
-    <style>
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #111116;
-        color: #f5f5f5;
-        margin: 0;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      h1 {
-        margin-bottom: 5px;
-        color: #61afef;
-        font-weight: 600;
-      }
-      .container {
-        display: flex;
-        gap: 24px;
-        max-width: 1050px;
-        width: 100%;
-        margin-top: 20px;
-      }
-      .controls {
-        background: #1e1e24;
-        padding: 20px;
-        border-radius: 12px;
-        flex: 1;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        border: 1px solid #2e2e38;
-      }
-      .control-group {
-        margin-bottom: 18px;
-      }
-      label {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 13px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #a0a0b0;
-      }
-      input[type="range"],
-      input[type="number"] {
-        width: 100%;
-        box-sizing: border-box;
-        background: #15151a;
-        border: 1px solid #3e3e4a;
-        color: #fff;
-        padding: 8px;
-        border-radius: 6px;
-      }
-      .canvas-area {
-        flex: 2;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      canvas {
-        background: #09090c;
-        border: 1px solid #25252b;
-        border-radius: 12px;
-        cursor: grab;
-        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
-      }
-      canvas:active {
-        cursor: grabbing;
-      }
-      pre {
-        background: #0d0d11;
-        padding: 14px;
-        border-radius: 6px;
-        font-family: monospace;
-        font-size: 13px;
-        border-left: 4px solid #61afef;
-        overflow-x: auto;
-        color: #abb2bf;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Involute Gear Simulation</h1>
-    <p style="color: #6c7280; margin: 0">
-      20° Pressure Angle Kinematics driven by Rust WebAssembly calculations
-    </p>
-
-    <div class="container">
-      <!-- Input parameters controls panel -->
-      <div class="controls">
-        <div class="control-group">
-          <label id="lbl-driver" for="driver">Driver Teeth: 18</label>
-          <input
-            type="range"
-            id="driver"
-            min="8"
-            max="50"
-            step="1"
-            value="18"
-          />
-        </div>
-        <div class="control-group">
-          <label id="lbl-driven" for="driven">Driven Teeth: 30</label>
-          <input
-            type="range"
-            id="driven"
-            min="8"
-            max="50"
-            step="1"
-            value="30"
-          />
-        </div>
-        <div class="control-group">
-          <label for="module">Module (Pitch Metric Scale):</label>
-          <input type="number" id="module" value="6.0" step="0.5" min="2" />
-        </div>
-        <div class="control-group">
-          <label id="lbl-rpm" for="rpm">Input Driver RPM: 30</label>
-          <input
-            type="range"
-            id="rpm"
-            min="-120"
-            max="120"
-            step="5"
-            value="30"
-          />
-        </div>
-
-        <h3>Telemetry Matrix</h3>
-        <pre id="output">Binding Wasm engine output...</pre>
-      </div>
-
-      <!-- Render Pipeline area -->
-      <div class="canvas-area">
-        <canvas id="gearCanvas" width="600" height="450"></canvas>
-        <p style="font-size: 12px; color: #5c6370; margin-top: 10px">
-          Drag mouse horizontally across the workspace canvas to manually
-          manipulate assembly rotation.
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Involute Mechanical Gear Simulation</title>
+        <style>
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background: #111116;
+                color: #f5f5f5;
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            h1 {
+                margin-bottom: 5px;
+                color: #61afef;
+                font-weight: 600;
+            }
+            .container {
+                display: flex;
+                gap: 24px;
+                max-width: 1050px;
+                width: 100%;
+                margin-top: 20px;
+            }
+            .controls {
+                background: #1e1e24;
+                padding: 20px;
+                border-radius: 12px;
+                flex: 1;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                border: 1px solid #2e2e38;
+            }
+            .control-group {
+                margin-bottom: 18px;
+            }
+            label {
+                display: block;
+                margin-bottom: 6px;
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #a0a0b0;
+            }
+            input[type="range"],
+            input[type="number"] {
+                width: 100%;
+                box-sizing: border-box;
+                background: #15151a;
+                border: 1px solid #3e3e4a;
+                color: #fff;
+                padding: 8px;
+                border-radius: 6px;
+            }
+            .canvas-area {
+                flex: 2;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            canvas {
+                background: #09090c;
+                border: 1px solid #25252b;
+                border-radius: 12px;
+                cursor: grab;
+                box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
+            }
+            canvas:active {
+                cursor: grabbing;
+            }
+            pre {
+                background: #0d0d11;
+                padding: 14px;
+                border-radius: 6px;
+                font-family: monospace;
+                font-size: 13px;
+                border-left: 4px solid #61afef;
+                overflow-x: auto;
+                color: #abb2bf;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Involute Gear Simulation</h1>
+        <p style="color: #6c7280; margin: 0">
+            20° Pressure Angle Kinematics driven by Rust WebAssembly
+            calculations
         </p>
-      </div>
-    </div>
 
-    <script type="module">
-      import init, { GearTrain } from "./pkg/gear_calculator.js";
+        <div class="container">
+            <!-- Input parameters controls panel -->
+            <div class="controls">
+                <div class="control-group">
+                    <label id="lbl-driver" for="driver">Driver Teeth: 18</label>
+                    <input
+                        type="range"
+                        id="driver"
+                        min="8"
+                        max="50"
+                        step="1"
+                        value="18"
+                    />
+                </div>
+                <div class="control-group">
+                    <label id="lbl-driven" for="driven">Driven Teeth: 30</label>
+                    <input
+                        type="range"
+                        id="driven"
+                        min="8"
+                        max="50"
+                        step="1"
+                        value="30"
+                    />
+                </div>
+                <div class="control-group">
+                    <label for="module">Module (Pitch Metric Scale):</label>
+                    <input
+                        type="number"
+                        id="module"
+                        value="6.0"
+                        step="0.5"
+                        min="2"
+                    />
+                </div>
+                <div class="control-group">
+                    <label id="lbl-rpm" for="rpm">Input Driver RPM: 30</label>
+                    <input
+                        type="range"
+                        id="rpm"
+                        min="-120"
+                        max="120"
+                        step="5"
+                        value="30"
+                    />
+                </div>
 
-      const canvas = document.getElementById("gearCanvas");
-      const ctx = canvas.getContext("2d");
+                <h3>Telemetry Matrix</h3>
+                <pre id="output">Binding Wasm engine output...</pre>
+            </div>
 
-      let driverAngle = 0;
-      let isDragging = false;
-      let previousMouseX = 0;
+            <!-- Render Pipeline area -->
+            <div class="canvas-area">
+                <canvas id="gearCanvas" width="600" height="450"></canvas>
+                <p style="font-size: 12px; color: #5c6370; margin-top: 10px">
+                    Drag mouse horizontally across the workspace canvas to
+                    manually manipulate assembly rotation.
+                </p>
+            </div>
+        </div>
 
-      async function startApp() {
-        await init();
-        let lastTime = performance.now();
+        <script type="module">
+            import init, { GearTrain } from "./pkg/gear_calculator.js";
 
-        function updateAndRender(currentTime) {
-          const dt = (currentTime - lastTime) / 1000;
-          lastTime = currentTime;
+            const canvas = document.getElementById("gearCanvas");
+            const ctx = canvas.getContext("2d");
 
-          const driverTeeth = parseInt(document.getElementById("driver").value);
-          const drivenTeeth = parseInt(document.getElementById("driven").value);
-          const moduleSize = parseFloat(
-            document.getElementById("module").value,
-          );
-          const driverRPM = parseFloat(document.getElementById("rpm").value);
+            let driverAngle = 0;
+            let isDragging = false;
+            let previousMouseX = 0;
 
-          document.getElementById("lbl-driver").textContent =
-            `Driver Teeth: ${driverTeeth}`;
-          document.getElementById("lbl-driven").textContent =
-            `Driven Teeth: ${drivenTeeth}`;
-          document.getElementById("lbl-rpm").textContent =
-            `Input Driver RPM: ${driverRPM}`;
+            async function startApp() {
+                await init();
+                let lastTime = performance.now();
 
-          const system = new GearTrain(driverTeeth, drivenTeeth, moduleSize);
-          const telemetryString = system.calculate(driverRPM);
-          const telemetry = JSON.parse(telemetryString);
+                function updateAndRender(currentTime) {
+                    const dt = (currentTime - lastTime) / 1000;
+                    lastTime = currentTime;
 
-          document.getElementById("output").textContent = JSON.stringify(
-            telemetry,
-            null,
-            2,
-          );
+                    const driverTeeth = parseInt(
+                        document.getElementById("driver").value,
+                    );
+                    const drivenTeeth = parseInt(
+                        document.getElementById("driven").value,
+                    );
+                    const moduleSize = parseFloat(
+                        document.getElementById("module").value,
+                    );
+                    const driverRPM = parseFloat(
+                        document.getElementById("rpm").value,
+                    );
 
-          if (!isDragging) {
-            const rps = driverRPM / 60;
-            driverAngle += rps * 2 * Math.PI * dt;
-          }
+                    document.getElementById("lbl-driver").textContent =
+                        `Driver Teeth: ${driverTeeth}`;
+                    document.getElementById("lbl-driven").textContent =
+                        `Driven Teeth: ${drivenTeeth}`;
+                    document.getElementById("lbl-rpm").textContent =
+                        `Input Driver RPM: ${driverRPM}`;
 
-          // Add a small angular clock offset to keep tooth pairings aligned correctly at mesh crossing point
-          const drivenAngle = -(driverAngle / telemetry.gear_ratio) + Math.PI;
+                    const system = new GearTrain(
+                        driverTeeth,
+                        drivenTeeth,
+                        moduleSize,
+                    );
+                    const telemetryString = system.calculate(driverRPM);
+                    const telemetry = JSON.parse(telemetryString);
 
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    document.getElementById("output").textContent =
+                        JSON.stringify(telemetry, null, 2);
 
-          const centerX = canvas.width / 2;
-          const centerY = canvas.height / 2;
+                    if (!isDragging) {
+                        const rps = driverRPM / 60;
+                        driverAngle += rps * 2 * Math.PI * dt;
+                    }
 
-          // Pitch Radii calculation matching standard mechanical metrics
-          const rDriver = (driverTeeth * moduleSize) / 2;
-          const rDriven = (drivenTeeth * moduleSize) / 2;
-          const totalCenterDist = rDriver + rDriven;
+                    // Add a small angular clock offset to keep tooth pairings aligned correctly at mesh crossing point
+                    const drivenAngle =
+                        -(driverAngle / telemetry.gear_ratio) + Math.PI;
 
-          // Center position offsets mapping structural bounds
-          const driverX = centerX - totalCenterDist / 2 + rDriver;
-          const drivenX = driverX + totalCenterDist;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          // Draw high fidelity profiles
-          drawInvoluteGear(
-            ctx,
-            driverX,
-            centerY,
-            driverTeeth,
-            moduleSize,
-            driverAngle,
-            "#98c379",
-          );
-          drawInvoluteGear(
-            ctx,
-            drivenX,
-            centerY,
-            drivenTeeth,
-            moduleSize,
-            drivenAngle,
-            "#e5c07b",
-          );
+                    const centerX = canvas.width / 2;
+                    const centerY = canvas.height / 2;
 
-          requestAnimationFrame(updateAndRender);
-        }
+                    // Pitch Radii calculation matching standard mechanical metrics
+                    const rDriver = (driverTeeth * moduleSize) / 2;
+                    const rDriven = (drivenTeeth * moduleSize) / 2;
+                    const totalCenterDist = rDriver + rDriven;
 
-        canvas.addEventListener("mousedown", (e) => {
-          isDragging = true;
-          previousMouseX = e.clientX;
-        });
-        window.addEventListener("mouseup", () => (isDragging = false));
-        window.addEventListener("mousemove", (e) => {
-          if (!isDragging) return;
-          const deltaX = e.clientX - previousMouseX;
-          previousMouseX = e.clientX;
-          driverAngle += deltaX * 0.008;
-        });
+                    // Center position offsets mapping structural bounds
+                    const driverX = centerX - totalCenterDist / 2 + rDriver;
+                    const drivenX = driverX + totalCenterDist;
 
-        requestAnimationFrame(updateAndRender);
-      }
+                    // Draw high fidelity profiles
+                    drawInvoluteGear(
+                        ctx,
+                        driverX,
+                        centerY,
+                        driverTeeth,
+                        moduleSize,
+                        driverAngle,
+                        "#98c379",
+                    );
+                    drawInvoluteGear(
+                        ctx,
+                        drivenX,
+                        centerY,
+                        drivenTeeth,
+                        moduleSize,
+                        drivenAngle,
+                        "#e5c07b",
+                    );
 
-      // Procedural generator processing true mechanical profile geometry structures
-      function drawInvoluteGear(
-        ctx,
-        cx,
-        cy,
-        teeth,
-        module,
-        rotationAngle,
-        color,
-      ) {
-        const pitchRadius = (teeth * module) / 2;
-        const pressureAngle = (20 * Math.PI) / 180; // Standard 20-degree industrial default pressure line
-        const baseRadius = pitchRadius * Math.cos(pressureAngle);
+                    requestAnimationFrame(updateAndRender);
+                }
 
-        // Standard Addendum and Dedendum calculations
-        const addendum = module;
-        const dedendum = 1.25 * module;
+                canvas.addEventListener("mousedown", (e) => {
+                    isDragging = true;
+                    previousMouseX = e.clientX;
+                });
+                window.addEventListener("mouseup", () => (isDragging = false));
+                window.addEventListener("mousemove", (e) => {
+                    if (!isDragging) return;
+                    const deltaX = e.clientX - previousMouseX;
+                    previousMouseX = e.clientX;
+                    driverAngle += deltaX * 0.008;
+                });
 
-        const outerRadius = pitchRadius + addendum;
-        const rootRadius = pitchRadius - dedendum;
+                requestAnimationFrame(updateAndRender);
+            }
 
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rotationAngle);
+            // Procedural generator processing true mechanical profile geometry structures
+            function drawInvoluteGear(
+                ctx,
+                cx,
+                cy,
+                teeth,
+                module,
+                rotationAngle,
+                color,
+            ) {
+                const pitchRadius = (teeth * module) / 2;
+                const pressureAngle = (20 * Math.PI) / 180; // Standard 20-degree industrial default pressure line
+                const baseRadius = pitchRadius * Math.cos(pressureAngle);
 
-        ctx.beginPath();
+                // Standard Addendum and Dedendum calculations
+                const addendum = module;
+                const dedendum = 1.25 * module;
 
-        const anglePerTooth = (Math.PI * 2) / teeth;
+                const outerRadius = pitchRadius + addendum;
+                const rootRadius = pitchRadius - dedendum;
 
-        for (let i = 0; i < teeth; i++) {
-          const toothCenterAngle = i * anglePerTooth;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(rotationAngle);
 
-          // Track tooth flank layout geometries (Left side pointing upward, right side mirroring downward)
-          // Left Flank
-          buildFlank(
-            ctx,
-            toothCenterAngle,
-            baseRadius,
-            rootRadius,
-            outerRadius,
-            1,
-          );
-          // Top Land flat mapping line connection boundary
-          // Right Flank (Inverted mirror vector trajectory)
-          buildFlank(
-            ctx,
-            toothCenterAngle + anglePerTooth * 0.5,
-            baseRadius,
-            rootRadius,
-            outerRadius,
-            -1,
-          );
+                ctx.beginPath();
 
-          // Form Root Land curve bridge link properties
-          const nextToothStart = (i + 1) * anglePerTooth;
-        }
+                const anglePerTooth = (Math.PI * 2) / teeth;
 
-        ctx.closePath();
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color + "15"; // Subtle translucent layout fill overlay mask
-        ctx.fill();
-        ctx.stroke();
+                for (let i = 0; i < teeth; i++) {
+                    const toothCenterAngle = i * anglePerTooth;
 
-        // Draw clean engineering reference markings (Pitch Diameter Ring)
-        ctx.beginPath();
-        ctx.arc(0, 0, pitchRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+                    // Track tooth flank layout geometries (Left side pointing upward, right side mirroring downward)
+                    // Left Flank
+                    buildFlank(
+                        ctx,
+                        toothCenterAngle,
+                        baseRadius,
+                        rootRadius,
+                        outerRadius,
+                        1,
+                    );
+                    // Top Land flat mapping line connection boundary
+                    // Right Flank (Inverted mirror vector trajectory)
+                    buildFlank(
+                        ctx,
+                        toothCenterAngle + anglePerTooth * 0.5,
+                        baseRadius,
+                        rootRadius,
+                        outerRadius,
+                        -1,
+                    );
 
-        // Draw Base Circle Ring profile indicator
-        ctx.beginPath();
-        ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(224, 108, 117, 0.12)";
-        ctx.stroke();
+                    // Form Root Land curve bridge link properties
+                    const nextToothStart = (i + 1) * anglePerTooth;
+                }
 
-        // Center structural shaft hub anchor visual markup points
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.max(8, pitchRadius * 0.15), 0, Math.PI * 2);
-        ctx.fillStyle = "#1e1e24";
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-      }
-      // Helper mapping mathematical coordinates along parametric unwinding paths
-      function buildFlank(
-        ctx,
-        baseOffsetAngle,
-        baseRadius,
-        rootRadius,
-        outerRadius,
-        direction,
-      ) {
-        const steps = 10;
-        // Determine maximum roll length angle boundary to clear the outer addendum crown
-        const maxTheta = Math.sqrt(Math.pow(outerRadius / baseRadius, 2) - 1);
-        for (let j = 0; j <= steps; j++) {
-          const fraction = j / steps;
-          const theta = fraction * maxTheta; // Unwinding string arc rotation parameter
-          // Standard parametric equations mapping coordinate nodes along true profile involutes
-          const xInvolute =
-            baseRadius * (Math.cos(theta) + theta * Math.sin(theta));
-          const yInvolute =
-            direction *
-            baseRadius *
-            (Math.sin(theta) - theta * Math.cos(theta));
-          // Project current node vector orientation relative to relative global structural space offsets
-          const currentRadius = Math.sqrt(
-            xInvolute * xInvolute + yInvolute * yInvolute,
-          );
-          const localAngle = Math.atan2(yInvolute, xInvolute);
-          const targetAngle = baseOffsetAngle + localAngle;
-          // Enforce geometry containment within root limits
-          const finalRadius = Math.max(rootRadius, currentRadius);
-          const posX = Math.cos(targetAngle) * finalRadius;
-          const posY = Math.sin(targetAngle) * finalRadius;
-          if (j === 0 && direction === 1) {
-            ctx.moveTo(posX, posY);
-          } else {
-            ctx.lineTo(posX, posY);
-          }
-        }
-      }
-      startApp();
-    </script>
-  </body>
+                ctx.closePath();
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color + "15"; // Subtle translucent layout fill overlay mask
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw clean engineering reference markings (Pitch Diameter Ring)
+                ctx.beginPath();
+                ctx.arc(0, 0, pitchRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Draw Base Circle Ring profile indicator
+                ctx.beginPath();
+                ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(224, 108, 117, 0.12)";
+                ctx.stroke();
+
+                // Center structural shaft hub anchor visual markup points
+                ctx.beginPath();
+                ctx.arc(0, 0, Math.max(8, pitchRadius * 0.15), 0, Math.PI * 2);
+                ctx.fillStyle = "#1e1e24";
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+            // Helper mapping mathematical coordinates along parametric unwinding paths
+            function buildFlank(
+                ctx,
+                baseOffsetAngle,
+                baseRadius,
+                rootRadius,
+                outerRadius,
+                direction,
+            ) {
+                const steps = 10;
+                // Determine maximum roll length angle boundary to clear the outer addendum crown
+                const maxTheta = Math.sqrt(
+                    Math.pow(outerRadius / baseRadius, 2) - 1,
+                );
+                for (let j = 0; j <= steps; j++) {
+                    const fraction = j / steps;
+                    const theta = fraction * maxTheta; // Unwinding string arc rotation parameter
+                    // Standard parametric equations mapping coordinate nodes along true profile involutes
+                    const xInvolute =
+                        baseRadius *
+                        (Math.cos(theta) + theta * Math.sin(theta));
+                    const yInvolute =
+                        direction *
+                        baseRadius *
+                        (Math.sin(theta) - theta * Math.cos(theta));
+                    // Project current node vector orientation relative to relative global structural space offsets
+                    const currentRadius = Math.sqrt(
+                        xInvolute * xInvolute + yInvolute * yInvolute,
+                    );
+                    const localAngle = Math.atan2(yInvolute, xInvolute);
+                    const targetAngle = baseOffsetAngle + localAngle;
+                    // Enforce geometry containment within root limits
+                    const finalRadius = Math.max(rootRadius, currentRadius);
+                    const posX = Math.cos(targetAngle) * finalRadius;
+                    const posY = Math.sin(targetAngle) * finalRadius;
+                    if (j === 0 && direction === 1) {
+                        ctx.moveTo(posX, posY);
+                    } else {
+                        ctx.lineTo(posX, posY);
+                    }
+                }
+            }
+            startApp();
+        </script>
+    </body>
 </html>
