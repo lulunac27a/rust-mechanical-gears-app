@@ -6,6 +6,7 @@
         <title>Involute Mechanical Gear Simulation</title>
         <style>
             body {
+                /*body styling for dark mode and layout alignment*/
                 font-family:
                     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                     sans-serif;
@@ -21,8 +22,9 @@
                 margin-bottom: 5px;
                 color: #61afef;
                 font-weight: 600;
-            }
+            } /*header styling for title*/
             .container {
+                /*container for controls and canvas layout*/
                 display: flex;
                 gap: 24px;
                 max-width: 1050px;
@@ -30,6 +32,7 @@
                 margin-top: 20px;
             }
             .controls {
+                /*controls panel styling for input parameters*/
                 background: #1e1e24;
                 padding: 20px;
                 border-radius: 12px;
@@ -38,9 +41,11 @@
                 border: 1px solid #2e2e38;
             }
             .control-group {
+                /*individual control group styling for labels and inputs*/
                 margin-bottom: 18px;
             }
             label {
+                /*label styling for input descriptions*/
                 display: block;
                 margin-bottom: 6px;
                 font-size: 13px;
@@ -50,6 +55,7 @@
             }
             input[type="range"],
             input[type="number"] {
+                /*input styling for range sliders and number inputs*/
                 width: 100%;
                 box-sizing: border-box;
                 background: #15151a;
@@ -59,12 +65,14 @@
                 border-radius: 6px;
             }
             .canvas-area {
+                /*canvas area styling for rendering the gear simulation*/
                 flex: 2;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
             }
             canvas {
+                /*canvas styling for gear rendering area*/
                 background: #09090c;
                 border: 1px solid #25252b;
                 border-radius: 12px;
@@ -73,8 +81,9 @@
             }
             canvas:active {
                 cursor: grabbing;
-            }
+            } /*cursor change on active drag for better UX*/
             pre {
+                /*preformatted text styling for telemetry output display*/
                 background: #0d0d11;
                 padding: 14px;
                 border-radius: 6px;
@@ -94,6 +103,7 @@
         </p>
 
         <div class="container">
+            <!--main container for layout-->
             <!-- Input parameters controls panel -->
             <div class="controls">
                 <div class="control-group">
@@ -146,6 +156,7 @@
 
             <!-- Render Pipeline area -->
             <div class="canvas-area">
+                <!--canvas area for gear rendering-->
                 <canvas id="gearCanvas" width="600" height="450"></canvas>
                 <p style="font-size: 12px; color: #5c6370; margin-top: 10px">
                     Drag mouse horizontally across the workspace canvas to
@@ -155,7 +166,7 @@
         </div>
 
         <script type="module">
-            import init, { GearTrain } from "./pkg/gear_calculator.js";
+            import init, { GearTrain } from "./pkg/gear_calculator.js"; //importing Rust WebAssembly module for gear calculations
 
             const canvas = document.getElementById("gearCanvas");
             const ctx = canvas.getContext("2d");
@@ -165,10 +176,12 @@
             let previousMouseX = 0;
 
             async function startApp() {
+                //initialize the WebAssembly module and start the main loop
                 await init();
                 let lastTime = performance.now();
 
                 function updateAndRender(currentTime) {
+                    //main update and render loop for gear simulation
                     const dt = (currentTime - lastTime) / 1000;
                     lastTime = currentTime;
 
@@ -204,6 +217,7 @@
                         JSON.stringify(telemetry, null, 2);
 
                     if (!isDragging) {
+                        //update driver angle based on RPM if not dragging
                         const rps = driverRPM / 60;
                         driverAngle += rps * 2 * Math.PI * dt;
                     }
@@ -246,22 +260,24 @@
                         "#e5c07b",
                     );
 
-                    requestAnimationFrame(updateAndRender);
+                    requestAnimationFrame(updateAndRender); //request next frame for continuous rendering
                 }
 
                 canvas.addEventListener("mousedown", (e) => {
+                    //mouse event listeners for drag interaction to manually rotate gears
                     isDragging = true;
                     previousMouseX = e.clientX;
                 });
-                window.addEventListener("mouseup", () => (isDragging = false));
+                window.addEventListener("mouseup", () => (isDragging = false)); //stop dragging on mouse up
                 window.addEventListener("mousemove", (e) => {
+                    //update driver angle based on mouse movement if dragging
                     if (!isDragging) return;
                     const deltaX = e.clientX - previousMouseX;
                     previousMouseX = e.clientX;
                     driverAngle += deltaX * 0.008;
                 });
 
-                requestAnimationFrame(updateAndRender);
+                requestAnimationFrame(updateAndRender); //start the animation loop
             }
 
             // Procedural generator processing true mechanical profile geometry structures
@@ -274,6 +290,7 @@
                 rotationAngle,
                 color,
             ) {
+                //function to draw an involute gear based on parameters
                 const pitchRadius = (teeth * module) / 2;
                 const pressureAngle = (20 * Math.PI) / 180; // Standard 20-degree industrial default pressure line
                 const baseRadius = pitchRadius * Math.cos(pressureAngle);
@@ -294,6 +311,7 @@
                 const anglePerTooth = (Math.PI * 2) / teeth;
 
                 for (let i = 0; i < teeth; i++) {
+                    //loop through each tooth to construct the gear profile
                     const toothCenterAngle = i * anglePerTooth;
 
                     // Track tooth flank layout geometries (Left side pointing upward, right side mirroring downward)
@@ -361,12 +379,14 @@
                 outerRadius,
                 direction,
             ) {
+                //function to build the flank of a gear tooth based on involute geometry
                 const steps = 10;
                 // Determine maximum roll length angle boundary to clear the outer addendum crown
                 const maxTheta = Math.sqrt(
                     Math.pow(outerRadius / baseRadius, 2) - 1,
                 );
                 for (let j = 0; j <= steps; j++) {
+                    //loop through steps to create the involute curve for the flank
                     const fraction = j / steps;
                     const theta = fraction * maxTheta; // Unwinding string arc rotation parameter
                     // Standard parametric equations mapping coordinate nodes along true profile involutes
@@ -388,13 +408,15 @@
                     const posX = Math.cos(targetAngle) * finalRadius;
                     const posY = Math.sin(targetAngle) * finalRadius;
                     if (j === 0 && direction === 1) {
+                        //move to starting point for left flank of tooth
                         ctx.moveTo(posX, posY);
                     } else {
+                        //draw line to next point along the flank
                         ctx.lineTo(posX, posY);
                     }
                 }
             }
-            startApp();
+            startApp(); //start the application and initialize the gear simulation
         </script>
     </body>
 </html>
