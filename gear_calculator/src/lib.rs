@@ -1,5 +1,5 @@
 use serde::Serialize;
-use serde::Serialize;lude::*;
+use wasm_bindgen::prelude::*;
 
 #[derive(Serialize)]
 pub struct GearResult {
