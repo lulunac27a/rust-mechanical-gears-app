@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use serde::Serialize;
+use serde::Serialize;lude::*;
 
 #[derive(Serialize)]
 pub struct GearResult {
@@ -30,7 +30,7 @@ impl GearTrain {
     pub fn calculate(&self, driver_rpm: f64) -> String {
         let ratio = self.driven_teeth as f64 / self.driver_teeth as f64;
         let driven_rpm = driver_rpm / ratio;
-        
+
         // Pitch diameter = module * teeth
         let d_driver = self.module * (self.driver_teeth as f64);
         let d_driven = self.module * (self.driven_teeth as f64);
