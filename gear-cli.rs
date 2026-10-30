@@ -6,7 +6,12 @@ struct GearTrain {
 }
 
 impl GearTrain {
-    fn new(driver_teeth: u32, driven_teeth: u32, module: f64, input_rpm: f64) -> Self {
+    fn new(
+        driver_teeth: u32,
+        driven_teeth: u32,
+        module: f64,
+        input_rpm: f64,
+    ) -> Self {
         Self {
             driver_teeth,
             driven_teeth,
