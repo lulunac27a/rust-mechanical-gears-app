@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::Serialize;//import the serde crate for serialization
 use wasm_bindgen::prelude::*;//import the serde crate for serialization
 
 #[derive(Serialize)]//derive the Serialize trait for the GearResult struct
